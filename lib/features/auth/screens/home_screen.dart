@@ -14,7 +14,7 @@ class HomeScreen extends StatelessWidget {
           'Bem-vindo ao SafeTrack!',
           style: TextStyle(fontSize: 20),
         ),
-      ),
+      )
     );
   }
 }
