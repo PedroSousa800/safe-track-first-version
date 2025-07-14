@@ -1,12 +1,9 @@
+import 'package:first_version/services/auth_service.dart';
 import 'package:flutter/material.dart';
-// ATENÇÃO: Verifique o caminho da importação do tema novamente.
-// A forma recomendada é:
-// import 'package:safe_track_first_version/core/theme/app_theme.dart';
-// Se o erro "Target of URI doesn't exist" ou "isn't a dependency" persistir,
-// verifique o nome do seu projeto no pubspec.yaml e execute 'flutter clean'/'flutter pub get'.
-// Caso contrário, o caminho relativo correto para sua estrutura seria:
-import '../../../core/theme/app_theme.dart'; // <<< CAMINHO RELATIVO PROVÁVEL PARA SUA ESTRUTURA
+import '../../../core/theme/app_theme.dart';
 import 'dart:developer' as developer;
+
+import 'package:first_version/features/auth/screens/finalize_pin_screen.dart'; 
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,6 +13,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
@@ -24,7 +22,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _register() async {
     // Basic validation
-    if (_emailController.text.isEmpty ||
+    if (_usernameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty) {
       if (!mounted) return;
@@ -46,49 +45,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _isLoading = true;
     });
 
-    // --- LÓGICA DE REGISTRO REAL E REMOÇÃO DO "DEAD CODE" ---
-    bool registrationSuccessful = false; // Variável para controlar o sucesso
+    // --- LÓGICA DE REGISTRO REAL ---
+    bool registrationSuccessful = false;
+    String message = 'Erro ao registrar usuário. Tente novamente.';
+    String? userId; 
+
     try {
-      // Simulação de um delay para registro
-      await Future.delayed(const Duration(seconds: 2));
+      final response = await AuthService().registerUser(
+        _usernameController.text, 
+        _emailController.text,
+        _passwordController.text,
+      );
 
-      // >>> SUBSTITUA O CONTEÚDO DESTE BLOCO PELA SUA CHAMADA DE BACKEND REAL <<<
-      // Exemplo:
-      // final response = await AuthService().register(_emailController.text, _passwordController.text);
-      // if (response.statusCode == 200) { // Exemplo de verificação de sucesso
-      //   registrationSuccessful = true;
-      // } else {
-      //   // Lógica para lidar com erros da API
-      //   registrationSuccessful = false;
-      // }
-
-      // TEMPORÁRIO PARA REMOVER O AVISO DE DEAD CODE, SE AINDA NÃO TEM BACKEND
-      registrationSuccessful = true; // Define como sucesso para testes visuais
-                                    // Mude para 'false' para testar a mensagem de erro
+      if (response.containsKey('user_id') && response['user_id'] != null) {
+        registrationSuccessful = true;
+        message = response['message'] ?? 'Usuário registrado com sucesso!';
+        userId = response['user_id']; 
+      } else {
+        message = response['error'] ?? 'Erro desconhecido ao registrar.';
+        developer.log('Erro do backend: $message', name: 'RegisterScreen');
+      }
     } catch (e) {
-      // Lidar com erros de rede ou exceções do serviço
+      message = 'Erro de conexão ou inesperado: $e';
       developer.log('Erro durante o registro: $e', name: 'RegisterScreen');
       registrationSuccessful = false;
     }
     // --- FIM DA LÓGICA DE REGISTRO REAL ---
 
+    if (!mounted) return;
 
-    if (!mounted) return; // Verifica se o widget ainda está montado APÓS o await
-
-    // A condição agora usa a variável 'registrationSuccessful', tornando o bloco 'else' alcançável.
     if (registrationSuccessful) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Usuário ${_emailController.text} registrado com sucesso!')),
+        SnackBar(content: Text(message)),
       );
-      Navigator.of(context).pop();
+      if (userId != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => FinalizePinScreen(
+              userId: userId!,
+              email: _emailController.text, // Passando o email
+            ),
+          ),
+        );
+      } else {
+        Navigator.of(context).pop(); 
+      }
     } else {
-      // Este 'else' não será "dead code" quando a condição acima for dinâmica
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao registrar usuário. Tente novamente.')),
+        SnackBar(content: Text(message)),
       );
     }
 
     if (!mounted) return;
+  
     setState(() {
       _isLoading = false;
     });
@@ -96,6 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -106,7 +116,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registrar Conta'),
@@ -135,6 +145,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48.0),
+
+              TextFormField(
+                controller: _usernameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nome de Usuário',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16.0),
 
               TextFormField(
                 controller: _emailController,

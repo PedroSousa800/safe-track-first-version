@@ -41,3 +41,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+linux/generated_plugins/
+windows/generated_plugins/
+macos/generated_plugins/

@@ -22,12 +22,10 @@ class SafeTrackApp extends StatelessWidget {
       title: 'SafeTrack',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/home': (context) => const HomeScreen(),
-      },
+      themeMode: ThemeMode.system, // Ou ThemeMode.light, ThemeMode.dark
+      // Removendo as rotas nomeadas aqui, pois a navegação será controlada pela SplashScreen
+      // com pushReplacement para maior controle do fluxo.
+      home: const SplashScreen(), // Define SplashScreen como a rota inicial
     );
   }
 }
@@ -39,100 +37,61 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with WidgetsBindingObserver {
+class _SplashScreenState extends State<SplashScreen> {
   final _storage = const FlutterSecureStorage();
-  bool _showClearButton = false; // Nova flag para controlar a visibilidade do botão
+  bool _showClearButton = false; // Flag para controlar a visibilidade do botão "Limpar Dados"
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _initializeSplash(); // Chama uma nova função de inicialização
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkAuthStatus();
-    }
-  }
-
-  // Nova função para gerenciar o fluxo da splash screen
-  Future<void> _initializeSplash() async {
-    // Dê um pequeno delay para a UI renderizar o CircularProgressIndicator e o botão
-    await Future.delayed(const Duration(milliseconds: 500)); // Ajuste o tempo conforme necessário
-
-    // Define que o botão de limpeza pode ser exibido (se quisermos que ele esteja lá)
-    setState(() {
-      _showClearButton = true;
-    });
-
-    // Agora sim, verifica o status de autenticação
     _checkAuthStatus();
   }
 
-
   Future<void> _checkAuthStatus() async {
-    final token = await _storage.read(key: 'token');
-    final pin = await _storage.read(key: 'pin');
+    developer.log('Verificando status de autenticação...', name: 'SplashScreen');
+    try {
+      String? token = await _storage.read(key: 'token');
+      String? pin = await _storage.read(key: 'pin');
+      developer.log('Token: $token, PIN: ${pin != null ? "******" : "null"}', name: 'SplashScreen');
 
-    String route;
-    if (token != null && !JwtDecoder.isExpired(token)) {
-      developer.log('Token encontrado e válido. Navegando para /home', name: 'SplashScreen');
-      route = '/home';
-    } else if (pin != null) {
-      developer.log('PIN encontrado. Navegando para /login', name: 'SplashScreen');
-      route = '/login';
-    } else {
-      developer.log('Nenhum token ou PIN. Navegando para /register', name: 'SplashScreen');
-      route = '/register';
+      await Future.delayed(const Duration(seconds: 2)); // Atraso para a SplashScreen ser visível
+
+      if (!mounted) return;
+
+      if (token != null && !JwtDecoder.isExpired(token)) {
+        // Token válido, navega para a HomeScreen
+        developer.log('Token válido, navegando para HomeScreen.', name: 'SplashScreen');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else if (pin != null && pin.isNotEmpty) {
+        // PIN encontrado (mas sem token ou token expirado), navega para a LoginScreen (PIN pad)
+        developer.log('PIN encontrado, navegando para LoginScreen (PIN).', name: 'SplashScreen');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      } else {
+        // Nenhum token nem PIN, navega para a RegisterScreen
+        developer.log('Nenhum token ou PIN, navegando para RegisterScreen.', name: 'SplashScreen');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const RegisterScreen()),
+        );
+      }
+    } on Exception catch (e) {
+      developer.log('Erro ao verificar status de autenticação: $e', name: 'SplashScreen', error: e);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar dados de autenticação: $e')),
+      );
+      // Em caso de erro, ainda permite a opção de limpar dados ou ir para registro
+      setState(() {
+        _showClearButton = true; // Permite que o botão de limpar dados apareça
+      });
+      // Permanece na SplashScreen e aguarda a interação do usuário para limpar dados/ir para registro
     }
-
-    if (!mounted) return;
-    // Só navega se a rota não for a tela de registro E o botão de limpeza não for para ser visível.
-    // Ou, para fins de teste de limpeza, você pode deixar o botão sempre visível e apenas navegar para o registro.
-    // A lógica abaixo garantirá que você veja o botão, mesmo que haja um PIN/token.
-    // Você pode comentar esta navegação automática para testar o botão de limpeza.
-    // Navigator.pushReplacementNamed(context, route); // Se você comentar esta linha, você terá que navegar manualmente.
-
-    // NOVO: Adicionei uma condição para que a navegação automática só aconteça
-    // se não for para a tela de registro, permitindo que você veja o botão de limpeza.
-    // Ou, uma alternativa mais simples para o teste: remova o Navigator.pushReplacementNamed
-    // e apenas chame o _checkAuthStatus() quando o botão de limpeza for clicado.
-    // Vou manter a navegação automática mas com o botão visível.
-
-    // A navegação automática deve ser a última coisa.
-    // Se o objetivo é sempre mostrar o botão de limpeza na SplashScreen para testes,
-    // então a navegação DEPOIS da limpeza é mais importante.
-    // Se você quer que a SplashScreen *sempre* mostre o botão para limpar (para desenvolvimento),
-    // você pode comentar o Navigator.pushReplacementNamed(context, route); aqui
-    // e fazer a navegação APENAS dentro do _clearAuthData.
-    // Para manter o fluxo normal e ainda permitir o teste, vamos deixar o botão visível.
-
-    // Esta parte do código ainda é responsável pela navegação automática.
-    // Para *forçar* a SplashScreen a mostrar o botão antes de qualquer navegação,
-    // é melhor não navegar aqui inicialmente, e sim só quando o botão for clicado,
-    // ou após um delay maior e se nenhum botão for clicado.
-
-    // Para fins de DEPURACAO e forçar a visualização do botão de limpeza:
-    // Comente a linha abaixo e faça a navegação para '/home' ou '/login'
-    // manualmente, ou crie outro botão para "Continuar".
-    // Ou, simplesmente use o botão de limpeza e ele irá para '/register'.
-    // A maneira mais fácil de testar o registro é limpar e navegar.
-    if (!mounted) return;
-    if (route != '/register') { // Se não for para o registro, navega. Se for, o botão de limpeza já navega.
-      Navigator.pushReplacementNamed(context, route);
-    }
-    // Se a rota for '/register', não navegamos automaticamente aqui.
-    // O usuário terá que clicar no botão de limpeza, que por sua vez, navegará para /register.
-    // Ou, se não houver token/pin, ele fica na SplashScreen até clicar no botão.
   }
 
   // --- FUNÇÃO PARA LIMPAR DADOS ---
@@ -146,7 +105,10 @@ class _SplashScreenState extends State<SplashScreen>
       const SnackBar(content: Text('Dados de autenticação limpos!')),
     );
     // Após limpar, NAVEGA para a rota de registro
-    Navigator.pushReplacementNamed(context, '/register');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+    );
   }
   // --- FIM DA FUNÇÃO ---
 
@@ -163,7 +125,7 @@ class _SplashScreenState extends State<SplashScreen>
             if (_showClearButton) // Condicional para exibir o botão
               ElevatedButton(
                 onPressed: _clearAuthData,
-                child: const Text('Limpar Dados de Autenticação'),
+                child: const Text('Limpar Dados e Ir para Registro'),
               ),
           ],
         ),
