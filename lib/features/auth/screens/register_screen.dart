@@ -1,9 +1,9 @@
-import 'package:first_version/services/auth_service.dart';
-import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
-import 'dart:developer' as developer;
+// lib/features/auth/screens/register_screen.dart
 
-import 'package:first_version/features/auth/screens/finalize_pin_screen.dart'; 
+import 'package:flutter/material.dart';
+import 'package:first_version/services/auth_service.dart';
+import 'package:first_version/features/auth/screens/finalize_pin_screen.dart';
+import 'package:first_version/features/auth/screens/login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -13,23 +13,40 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
+  final AuthService _authService = AuthService();
   bool _isLoading = false;
 
-  void _register() async {
-    // Basic validation
-    if (_usernameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _usernameController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _registerUser() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+    });
+
+    if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
+        _usernameController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, preencha todos os campos.')),
       );
+      setState(() {
+        _isLoading = false;
+      });
       return;
     }
 
@@ -38,183 +55,130 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('As senhas não coincidem.')),
       );
+      setState(() {
+        _isLoading = false;
+      });
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    // --- LÓGICA DE REGISTRO REAL ---
-    bool registrationSuccessful = false;
-    String message = 'Erro ao registrar usuário. Tente novamente.';
-    String? userId; 
-
     try {
-      final response = await AuthService().registerUser(
-        _usernameController.text, 
+      // CORRIGIDO: Mudar de .register para .registerUser
+      final response = await _authService.registerUser(
         _emailController.text,
         _passwordController.text,
+        _usernameController.text, // O endpoint de registro deve aceitar username
       );
 
-      if (response.containsKey('user_id') && response['user_id'] != null) {
-        registrationSuccessful = true;
-        message = response['message'] ?? 'Usuário registrado com sucesso!';
-        userId = response['user_id']; 
-      } else {
-        message = response['error'] ?? 'Erro desconhecido ao registrar.';
-        developer.log('Erro do backend: $message', name: 'RegisterScreen');
-      }
-    } catch (e) {
-      message = 'Erro de conexão ou inesperado: $e';
-      developer.log('Erro durante o registro: $e', name: 'RegisterScreen');
-      registrationSuccessful = false;
-    }
-    // --- FIM DA LÓGICA DE REGISTRO REAL ---
+      if (!mounted) return;
 
-    if (!mounted) return;
-
-    if (registrationSuccessful) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-      if (userId != null) {
-        Navigator.of(context).pushReplacement(
+      if (response.containsKey('success') && response['success'] == true) { // Verifique 'success' em vez de 'message' string literal
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registro realizado com sucesso! Prossiga para finalizar o PIN.')), // Mensagem mais clara
+        );
+        // Garanta que 'user_id' esteja sendo retornado pelo AuthService.registerUser
+        // Se o seu backend não retorna user_id no registro, você precisará ajustar isso.
+        // Ou, se o PIN for genérico ou gerado no cliente, ajuste a FinalizePinScreen para não precisar de userId no construtor.
+        // Assumindo que o backend retorna 'user_id' e 'email' é o que o FinalizePinScreen precisa.
+        Navigator.pushReplacement(
+          context,
           MaterialPageRoute(
             builder: (context) => FinalizePinScreen(
-              userId: userId!,
-              email: _emailController.text, // Passando o email
+              userId: response['user_id'] ?? '', // Forneça um fallback, se userId puder ser null
+              email: _emailController.text,
             ),
           ),
         );
       } else {
-        Navigator.of(context).pop(); 
+        // Se a resposta do backend tiver uma chave 'message' ou 'error'
+        String errorMessage = response['message'] ?? response['error'] ?? 'Falha no registro: Erro desconhecido.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
       }
-    } else {
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(content: Text('Erro ao registrar: $e')),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-
-    if (!mounted) return;
-  
-    setState(() {
-      _isLoading = false;
-    });
-  }
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Registrar Conta'),
-        centerTitle: true,
+        title: const Text('Registro de Usuário'),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
+      body: Center(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              const SizedBox(height: 48.0),
-              Text(
-                'Crie sua conta',
-                style: textTheme.headlineMedium?.copyWith(
-                  color: AppTheme.primaryText,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16.0),
-              Text(
-                'Preencha os campos abaixo para criar sua nova conta.',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.secondaryText,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 48.0),
-
               TextFormField(
                 controller: _usernameController,
                 decoration: const InputDecoration(
                   labelText: 'Nome de Usuário',
-                  prefixIcon: Icon(Icons.person_outline),
+                  prefixIcon: Icon(Icons.person),
+                  border: OutlineInputBorder(),
                 ),
-                keyboardType: TextInputType.text,
-                textInputAction: TextInputAction.next,
               ),
-              const SizedBox(height: 16.0),
-
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
                   labelText: 'Email',
-                  prefixIcon: Icon(Icons.email_outlined),
+                  prefixIcon: Icon(Icons.email),
+                  border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
               ),
-              const SizedBox(height: 16.0),
-
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
                 decoration: const InputDecoration(
                   labelText: 'Senha',
-                  prefixIcon: Icon(Icons.lock_outline),
+                  prefixIcon: Icon(Icons.lock),
+                  border: OutlineInputBorder(),
                 ),
                 obscureText: true,
-                textInputAction: TextInputAction.next,
               ),
-              const SizedBox(height: 16.0),
-
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _confirmPasswordController,
                 decoration: const InputDecoration(
                   labelText: 'Confirmar Senha',
-                  prefixIcon: Icon(Icons.lock_reset_outlined),
+                  prefixIcon: Icon(Icons.lock),
+                  border: OutlineInputBorder(),
                 ),
                 obscureText: true,
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => _register(),
               ),
-              const SizedBox(height: 32.0),
-
+              const SizedBox(height: 24),
               _isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        color: colorScheme.primary,
-                      ),
-                    )
+                  ? const CircularProgressIndicator()
                   : ElevatedButton(
-                      onPressed: _register,
+                      onPressed: _registerUser,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
                       child: const Text('Registrar'),
                     ),
-
-              const SizedBox(height: 24.0),
-
+              // NOVO: Adicionado um botão para ir para a tela de Login
+              const SizedBox(height: 16),
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
                 },
-                child: Text(
-                  'Já tem uma conta? Faça Login',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: const Text('Já tem uma conta? Faça login!'),
               ),
             ],
           ),

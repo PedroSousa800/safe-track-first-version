@@ -2,7 +2,6 @@
 
 import 'package:first_version/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:first_version/core/theme/app_theme.dart'; // Mantemos o import de AppTheme
 
 class CustomPinPad extends StatelessWidget {
   final ValueChanged<String> onDigitPressed;

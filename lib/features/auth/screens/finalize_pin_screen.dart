@@ -151,7 +151,6 @@ class _FinalizePinScreenState extends State<FinalizePinScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Finalizar Registro'),
-        backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
       ),
       body: SafeArea(

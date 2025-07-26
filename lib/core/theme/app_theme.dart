@@ -202,7 +202,7 @@ class AppTheme {
       color: primaryText, // Cor padrão para ícones
       size: 24,
     ),
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       backgroundColor: primaryBrand, // <--- Mude para primaryBrand
       foregroundColor:
           secondaryBackground, // <--- Provavelmente você vai querer o texto/ícones brancos sobre o fundo azul
@@ -227,7 +227,7 @@ class AppTheme {
       border: OutlineInputBorder(
         // Borda padrão
         borderRadius: BorderRadius.circular(8.0), // Bordas arredondadas
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: alternateBrand, // Borda fina e discreta
           width: 1.0,
         ),
@@ -235,7 +235,7 @@ class AppTheme {
       enabledBorder: OutlineInputBorder(
         // Borda quando o campo está habilitado
         borderRadius: BorderRadius.circular(8.0),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: alternateBrand, // Cor da borda
           width: 1.0, // Espessura da borda
         ),
@@ -243,28 +243,28 @@ class AppTheme {
       focusedBorder: OutlineInputBorder(
         // Borda quando o campo está focado
         borderRadius: BorderRadius.circular(8.0),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color:
               primaryBrand, // Cor da borda quando focado (pode ser sua primaryBrand)
           width: 2.0, // Um pouco mais grossa para indicar foco
         ),
       ),
-      labelStyle: TextStyle(
+      labelStyle: const TextStyle(
         // Estilo do texto do label (quando não focado)
         color: secondaryText, // Cinza para o label
         fontSize: 16,
       ),
-      floatingLabelStyle: TextStyle(
+      floatingLabelStyle: const TextStyle(
         // Estilo do texto do label (quando flutua)
         color: primaryText, // Preto/azul escuro para o label flutuante
         fontSize: 14,
       ),
-      hintStyle: TextStyle(
+      hintStyle: const TextStyle(
         // Estilo do texto de hint (placeholder)
         color: secondaryText, // Cinza para o hint
         fontSize: 16,
       ),
-      errorStyle: TextStyle(
+      errorStyle: const TextStyle(
         // Estilo do texto de erro
         color: errorColor, // Cor de erro
         fontSize: 12,
@@ -372,8 +372,8 @@ class AppTheme {
       color: secondaryBackground, // Cor padrão para ícones no modo escuro
       size: 24,
     ),
-    appBarTheme: AppBarTheme(
-      backgroundColor: const Color(0xFF1D2428), // Fundo escuro para AppBar
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF1D2428), // Fundo escuro para AppBar
       foregroundColor: secondaryBackground, // Cor do texto e ícones (branco)
       elevation: 0, // Sem sombra
       centerTitle: true, // Centraliza o título
@@ -394,40 +394,40 @@ class AppTheme {
           const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8.0),
-        borderSide: BorderSide(
-          color: const Color(0xFF4B5563), // Borda discreta no tema escuro
+        borderSide: const BorderSide(
+          color: Color(0xFF4B5563), // Borda discreta no tema escuro
           width: 1.0,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8.0),
-        borderSide: BorderSide(
-          color: const Color(0xFF4B5563),
+        borderSide: const BorderSide(
+          color: Color(0xFF4B5563),
           width: 1.0,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8.0),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: primaryBrand, // Cor da borda quando focado (sua primaryBrand)
           width: 2.0,
         ),
       ),
-      labelStyle: TextStyle(
-        color: const Color(
+      labelStyle: const TextStyle(
+        color: Color(
             0xFF9AA5AE), // Cinza mais claro para o label no tema escuro
         fontSize: 16,
       ),
-      floatingLabelStyle: TextStyle(
+      floatingLabelStyle: const TextStyle(
         color:
             secondaryBackground, // Branco para o label flutuante no tema escuro
         fontSize: 14,
       ),
-      hintStyle: TextStyle(
-        color: const Color(0xFF9AA5AE),
+      hintStyle: const TextStyle(
+        color: Color(0xFF9AA5AE),
         fontSize: 16,
       ),
-      errorStyle: TextStyle(
+      errorStyle: const TextStyle(
         color: errorColor,
         fontSize: 12,
       ),
