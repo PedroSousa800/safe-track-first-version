@@ -1,17 +1,15 @@
 // lib/features/auth/screens/login_screen.dart
 
-import 'package:first_version/features/auth/screens/profile_selection_screen.dart';
+import 'package:first_version/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:first_version/services/auth_service.dart';
 import 'dart:developer' as developer;
 
-import 'package:first_version/features/auth/screens/home_screen.dart';
 import 'package:first_version/features/auth/widgets/custom_pin_pad.dart';
 import 'package:first_version/core/theme/app_theme.dart'; // Mantemos o import de AppTheme
 import 'package:first_version/features/auth/widgets/pin_input_display.dart';
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -73,18 +71,23 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleBackspace() {
     if (_pinController.text.isNotEmpty) {
       setState(() {
-        _pinController.text = _pinController.text.substring(0, _pinController.text.length - 1);
+        _pinController.text =
+            _pinController.text.substring(0, _pinController.text.length - 1);
       });
-      developer.log('PIN backspace. Current PIN: ${_pinController.text}', name: 'LoginScreen');
+      developer.log('PIN backspace. Current PIN: ${_pinController.text}',
+          name: 'LoginScreen');
     }
   }
 
   Future<void> _handleBiometrics() async {
     developer.log('Attempting biometrics...', name: 'LoginScreen');
     bool canCheckBiometrics = await _auth.canCheckBiometrics;
-    List<BiometricType> availableBiometrics = await _auth.getAvailableBiometrics();
-    developer.log('Can check biometrics: $canCheckBiometrics', name: 'LoginScreen');
-    developer.log('Available biometrics: $availableBiometrics', name: 'LoginScreen');
+    List<BiometricType> availableBiometrics =
+        await _auth.getAvailableBiometrics();
+    developer.log('Can check biometrics: $canCheckBiometrics',
+        name: 'LoginScreen');
+    developer.log('Available biometrics: $availableBiometrics',
+        name: 'LoginScreen');
     if (canCheckBiometrics) {
       try {
         bool authenticated = await _auth.authenticate(
@@ -96,18 +99,22 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         if (!mounted) return;
         if (authenticated) {
-          developer.log('Biometric authentication successful.', name: 'LoginScreen');
+          developer.log('Biometric authentication successful.',
+              name: 'LoginScreen');
           if (_storedEmail != null) {
             await _login(useBiometrics: true);
           } else {
             // Adicionar mounted check
             if (!mounted) return; // Add mounted check here
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Nenhum email armazenado para login biométrico.')),
+              const SnackBar(
+                  content:
+                      Text('Nenhum email armazenado para login biométrico.')),
             );
           }
         } else {
-          developer.log('Biometric authentication failed.', name: 'LoginScreen');
+          developer.log('Biometric authentication failed.',
+              name: 'LoginScreen');
           // Adicionar mounted check
           if (!mounted) return; // Add mounted check here
           ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +122,8 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } catch (e) {
-        developer.log('Erro durante a autenticação biométrica: $e', name: 'LoginScreen');
+        developer.log('Erro durante a autenticação biométrica: $e',
+            name: 'LoginScreen');
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro na autenticação biométrica: $e')),
@@ -124,7 +132,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biometria não disponível ou configurada neste dispositivo.')),
+        const SnackBar(
+            content: Text(
+                'Biometria não disponível ou configurada neste dispositivo.')),
       );
     }
   }
@@ -140,7 +150,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (_storedEmail != null) {
         _showEmailField = false;
         if (await _auth.canCheckBiometrics && await _auth.isDeviceSupported()) {
-          developer.log('Biometrics available for stored user.', name: 'LoginScreen');
+          developer.log('Biometrics available for stored user.',
+              name: 'LoginScreen');
         }
       } else {
         _showEmailField = true;
@@ -165,7 +176,8 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null; // Limpa qualquer erro anterior
     });
 
-    String emailToUse = _showEmailField ? _emailController.text : (_storedEmail ?? '');
+    String emailToUse =
+        _showEmailField ? _emailController.text : (_storedEmail ?? '');
 
     if (emailToUse.isEmpty) {
       setState(() {
@@ -184,12 +196,15 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final response = await _authService.loginUser(emailToUse, _pinController.text);
+      final response =
+          await _authService.loginUser(emailToUse, _pinController.text);
 
       if (!mounted) return;
 
-      if (response['success'] == true) { // Verifica a chave 'success' retornada pelo AuthService
-        developer.log('Login successful for user: $emailToUse', name: 'LoginScreen');
+      if (response['success'] == true) {
+        // Verifica a chave 'success' retornada pelo AuthService
+        developer.log('Login successful for user: $emailToUse',
+            name: 'LoginScreen');
         if (_showEmailField) {
           await _storage.write(key: 'email', value: emailToUse);
         }
@@ -200,41 +215,46 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // *** LÓGICA DE NAVEGAÇÃO CONDICIONAL AQUI ***
         final String? profileType = response['profile_type'];
-        final String? userId = response['user_id']; // Obter userId da resposta do login
+        final String? userId =
+            response['user_id']; // Obter userId da resposta do login
 
         if (!mounted) return; // Nova verificação de mounted antes da navegação
 
         if (profileType == null || profileType.isEmpty) {
           // Se o perfil não estiver definido, navega para ProfileSelectionScreen
-          if (userId != null) { // Garante que temos um userId para passar
-            Navigator.pushReplacement(
+          if (userId != null) {
+            // Garante que temos um userId para passar
+            Navigator.pushReplacementNamed(
               context,
-              MaterialPageRoute(
-                builder: (context) => ProfileSelectionScreen(
-                  userId: userId,
-                  initialProfileType: null, // Não há perfil inicial definido
-                ),
-              ),
+              AppRoutes.profileSelection,
+              arguments: userId,
             );
-            developer.log('Navegando para ProfileSelectionScreen.', name: 'LoginScreen');
+
+            developer.log('Navegando para ProfileSelectionScreen.',
+                name: 'LoginScreen');
           } else {
             // Caso userId seja nulo, o que não deveria acontecer após login bem-sucedido
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Erro: ID do usuário não encontrado após login.')),
+              const SnackBar(
+                  content:
+                      Text('Erro: ID do usuário não encontrado após login.')),
             );
-            developer.log('Erro: userId nulo após login bem-sucedido.', name: 'LoginScreen');
+            developer.log('Erro: userId nulo após login bem-sucedido.',
+                name: 'LoginScreen');
           }
         } else {
           // Se o perfil já estiver definido, navega para HomeScreen
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-          developer.log('Navegando para HomeScreen (perfil já definido: $profileType).', name: 'LoginScreen');
+
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
+
+          developer.log(
+              'Navegando para HomeScreen (perfil já definido: $profileType).',
+              name: 'LoginScreen');
         }
       } else {
         // Login falhou, exibe a mensagem de erro do AuthService
-        String errorMessage = response['message'] ?? 'Falha no login: Erro desconhecido.';
+        String errorMessage =
+            response['message'] ?? 'Falha no login: Erro desconhecido.';
         setState(() {
           _error = errorMessage;
         });
@@ -260,7 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     // Acessar diretamente as cores estáticas de AppTheme
@@ -298,53 +318,68 @@ class _LoginScreenState extends State<LoginScreen> {
                           decoration: InputDecoration(
                             labelText: 'Email',
                             hintText: 'Digite seu email',
-                            prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.secondaryText), // Usar AppTheme diretamente
+                            prefixIcon: const Icon(Icons.email_outlined,
+                                color: AppTheme
+                                    .secondaryText), // Usar AppTheme diretamente
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(color: AppTheme.alternateBrand), // Usar AppTheme diretamente
+                              borderSide: const BorderSide(
+                                  color: AppTheme
+                                      .alternateBrand), // Usar AppTheme diretamente
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(color: AppTheme.alternateBrand), // Usar AppTheme diretamente
+                              borderSide: const BorderSide(
+                                  color: AppTheme
+                                      .alternateBrand), // Usar AppTheme diretamente
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(color: AppTheme.primaryBrand, width: 2.0), // Usar AppTheme diretamente
+                              borderSide: const BorderSide(
+                                  color: AppTheme.primaryBrand,
+                                  width: 2.0), // Usar AppTheme diretamente
                             ),
                             filled: true,
-                            fillColor: AppTheme.secondaryBackground, // Usar AppTheme diretamente
-                            labelStyle: const TextStyle(color: AppTheme.primaryText), // Usar AppTheme diretamente
-                            hintStyle: const TextStyle(color: AppTheme.secondaryText), // Usar AppTheme diretamente
+                            fillColor: AppTheme
+                                .secondaryBackground, // Usar AppTheme diretamente
+                            labelStyle: const TextStyle(
+                                color: AppTheme
+                                    .primaryText), // Usar AppTheme diretamente
+                            hintStyle: const TextStyle(
+                                color: AppTheme
+                                    .secondaryText), // Usar AppTheme diretamente
                           ),
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          style: const TextStyle(color: AppTheme.primaryText), // Usar AppTheme diretamente
+                          style: const TextStyle(
+                              color: AppTheme
+                                  .primaryText), // Usar AppTheme diretamente
                         ),
                         const SizedBox(height: 24.0),
                       ],
-
                       Padding(
                         padding: const EdgeInsets.only(bottom: 35.0),
                         child: Text(
                           'Insira seu PIN',
                           textAlign: TextAlign.center,
                           style: headlineMediumStyle?.copyWith(
-                            color: AppTheme.primaryText, // Usar AppTheme diretamente
+                            color: AppTheme
+                                .primaryText, // Usar AppTheme diretamente
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: PinInputDisplay(
                           pinLength: _pinController.text.length,
                           maxLength: 4,
-                          filledColor: AppTheme.primaryBrand, // Usar AppTheme diretamente
-                          emptyColor: AppTheme.infoColor, // Usar AppTheme diretamente
+                          filledColor: AppTheme
+                              .primaryBrand, // Usar AppTheme diretamente
+                          emptyColor:
+                              AppTheme.infoColor, // Usar AppTheme diretamente
                         ),
                       ),
-
                       CustomPinPad(
                         onDigitPressed: _handleDigitPressed,
                         onBackspacePressed: _handleBackspace,
@@ -355,7 +390,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (_error != null)
                         Text(
                           _error!,
-                          style: const TextStyle(color: AppTheme.errorColor, fontSize: 16), // Usar AppTheme diretamente
+                          style: const TextStyle(
+                              color: AppTheme.errorColor,
+                              fontSize: 16), // Usar AppTheme diretamente
                           textAlign: TextAlign.center,
                         ),
                       const SizedBox(height: 24.0)

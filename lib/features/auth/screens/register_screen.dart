@@ -2,8 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:first_version/services/auth_service.dart';
-import 'package:first_version/features/auth/screens/finalize_pin_screen.dart';
-import 'package:first_version/features/auth/screens/login_screen.dart';
+import 'package:first_version/routes/app_routes.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -73,15 +72,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // Se o seu backend não retorna user_id no registro, você precisará ajustar isso.
         // Ou, se o PIN for genérico ou gerado no cliente, ajuste a FinalizePinScreen para não precisar de userId no construtor.
         // Assumindo que o backend retorna 'user_id' e 'email' é o que o FinalizePinScreen precisa.
-        Navigator.pushReplacement(
+        Navigator.pushReplacementNamed(
           context,
-          MaterialPageRoute(
-            builder: (context) => FinalizePinScreen(
-              userId: response['user_id'] ??
-                  '', // Forneça um fallback, se userId puder ser null
-              email: _emailController.text,
-            ),
-          ),
+          AppRoutes.finalizePin,
+          arguments: {
+            'user_id': response[
+                'user_id'], // Certifique-se de que o backend retorna isso
+            'email': _emailController.text,
+          },
         );
       } else {
         // Se a resposta do backend tiver uma chave 'message' ou 'error'
@@ -228,11 +226,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const LoginScreen()),
-                    );
+                    Navigator.pushReplacementNamed(context, AppRoutes.login);
                   },
                   child: const Text('Já tem uma conta? Faça login!'),
                 ),

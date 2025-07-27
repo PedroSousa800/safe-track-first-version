@@ -1,8 +1,8 @@
+import 'package:first_version/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:first_version/services/auth_service.dart';
 import 'dart:developer' as developer; // ESTA LINHA DEVE ESTAR PRESENTE
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:first_version/features/auth/screens/login_screen.dart'; // IMPORTANTE: Adicione este import
 
 class FinalizePinScreen extends StatefulWidget {
   final String userId;
@@ -123,10 +123,8 @@ class _FinalizePinScreenState extends State<FinalizePinScreen> {
             'FinalizePinScreen: SnackBar de sucesso mostrada. Tentando navegar para LoginScreen...',
             name: 'FinalizePinScreen');
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
+
         developer.log('FinalizePinScreen: Navegação para LoginScreen iniciada.',
             name: 'FinalizePinScreen');
       } else {

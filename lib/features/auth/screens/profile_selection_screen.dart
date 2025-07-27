@@ -2,9 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:first_version/services/auth_service.dart';
-// REMOVA ESTA LINHA: import 'package:first_version/main.dart';
-// ADICIONE ESTA LINHA:
-import 'package:first_version/features/auth/screens/home_screen.dart'; // Importa a HomeScreen correta
+import 'package:first_version/routes/app_routes.dart'; // Importa as rotas do aplicativo
 
 class ProfileSelectionScreen extends StatefulWidget {
   final String userId;
@@ -56,10 +54,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
 
     if (result['success']) {
       // Navegar para a HomeScreen
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const HomeScreen()), // APONTANDO PARA A HOMESCREEN
-        (Route<dynamic> route) => false,
-      );
+      Navigator.pushReplacementNamed(context, AppRoutes.home); // APONTANDO PARA A HOMESCREEN
     } else {
       setState(() {
         _errorMessage = result['message'] ?? 'Falha ao definir o tipo de perfil.';

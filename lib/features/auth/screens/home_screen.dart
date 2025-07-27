@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:first_version/services/auth_service.dart'; // Importa seu AuthService
-import 'package:first_version/features/auth/screens/login_screen.dart'; // Importa sua LoginScreen
+import 'package:first_version/routes/app_routes.dart'; // Importa suas rotas
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -46,8 +46,8 @@ class HomeScreen extends StatelessWidget {
                 await authService.logout(); // Chama o método de logout no AuthService
                 // NOVO: Navega para a LoginScreen removendo todas as rotas anteriores
                 if (context.mounted) { // Verifica se o widget ainda está montado
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    AppRoutes.login,
                     (Route<dynamic> route) => false,
                   );
                 }
