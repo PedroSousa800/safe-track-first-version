@@ -52,6 +52,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkAuthStatus() async {
     developer.log('Verificando status de autenticação...', name: 'SplashScreen');
+
+    // --- ADICIONE ESTA LINHA TEMPORARIAMENTE PARA TESTES ---
+    await _authService.logout(); // Força o logout a cada inicialização para testes
+    developer.log('Forçando logout para fins de teste.', name: 'SplashScreen');
+    // --------------------------------------------------------
+
     try {
       // CORRIGIDO: Acessando as chaves estáticas públicas da classe AuthService
       String? token = await _storage.read(key: AuthService.tokenKey);

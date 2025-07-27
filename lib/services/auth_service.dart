@@ -46,9 +46,25 @@ class AuthService {
 
         return {'success': true, 'message': 'Login bem-sucedido.', 'profile_type': responseBody['profile_type'], 'user_id': responseBody['user_id']};
       } else {
-        // Se o status não for 200, assume-se que é um erro do backend
-        // O 'detail' é comum em erros 422 do FastAPI, 'message' é mais genérico
-        return {'success': false, 'message': responseBody['detail'] ?? responseBody['message'] ?? 'Erro desconhecido ao logar.'};
+        // --- INÍCIO DA CORREÇÃO AQUI ---
+        String parsedErrorMessage = 'Erro desconhecido ao logar.'; // Mensagem padrão
+
+        // Tenta extrair a mensagem de erro do 'detail' do FastAPI
+        if (responseBody.containsKey('detail')) {
+            if (responseBody['detail'] is Map && responseBody['detail'].containsKey('message')) {
+                parsedErrorMessage = responseBody['detail']['message'];
+            } else if (responseBody['detail'] is String) {
+                parsedErrorMessage = responseBody['detail'];
+            }
+        } 
+        // Se não houver 'detail' ou se ele não contiver uma mensagem tratável,
+        // tenta usar uma chave 'message' de nível superior se existir.
+        else if (responseBody.containsKey('message')) {
+            parsedErrorMessage = responseBody['message'];
+        }
+        
+        return {'success': false, 'message': parsedErrorMessage};
+        // --- FIM DA CORREÇÃO AQUI ---
       }
     } catch (e) {
       developer.log('Erro no login: $e', name: 'AuthService', error: e);
@@ -88,8 +104,43 @@ class AuthService {
           };
         }
       } else {
-        // Trata outros status codes de erro (4xx, 5xx)
-        return {'success': false, 'message': responseBody['message'] ?? 'Erro desconhecido ao registrar.'};
+ // --- INÍCIO DA CORREÇÃO AQUI para erros do FastAPI (e-mail inválido, etc.) ---
+        String parsedErrorMessage = 'Erro desconhecido ao registrar.'; 
+
+        if (responseBody.containsKey('detail')) {
+            var detail = responseBody['detail'];
+            if (detail is List && detail.isNotEmpty) {
+                // Se 'detail' é uma lista (erro de validação do Pydantic)
+                // Ex: [{"loc": ["body", "email"], "msg": "value is not a valid email address", ...}]
+                // Vamos tentar pegar a primeira mensagem de erro ou combiná-las
+                List<String> errors = [];
+                for (var errorItem in detail) {
+                    if (errorItem is Map && errorItem.containsKey('msg')) {
+                        // Tenta ser mais específico se o erro for no email
+                        if (errorItem.containsKey('loc') && errorItem['loc'] is List && errorItem['loc'].contains('email')) {
+                            errors.add('Erro no email: ${errorItem['msg']}');
+                        } else {
+                            errors.add(errorItem['msg']);
+                        }
+                    }
+                }
+                if (errors.isNotEmpty) {
+                    parsedErrorMessage = errors.join('; '); // Combina as mensagens de erro
+                }
+            } else if (detail is String) {
+                // Se 'detail' for uma string simples (como em HTTPException)
+                parsedErrorMessage = detail;
+            } else if (detail is Map && detail.containsKey('message')) {
+                // Se 'detail' for um mapa com uma chave 'message' (como em HTTPException personalizado)
+                parsedErrorMessage = detail['message'];
+            }
+        } else if (responseBody.containsKey('message')) {
+            // Caso a resposta tenha uma chave 'message' de nível superior
+            parsedErrorMessage = responseBody['message'];
+        }
+        
+        return {'success': false, 'message': parsedErrorMessage};
+        // --- FIM DA CORREÇÃO AQUI ---
       }
     } catch (e) {
       developer.log('Erro no registro: $e', name: 'AuthService', error: e);
@@ -97,7 +148,7 @@ class AuthService {
     }
   }
 
-  // MÉTODO finalizePin CORRIGIDO
+  // MÉTODO finalizePin (já estava corrigido, incluído para completude)
   Future<Map<String, dynamic>> finalizePin(String userId, String pin) async {
     // CORRIGIDO: Use a URL correta do backend e o verbo HTTP POST
     final url = Uri.parse('$_baseUrl/finalize-pin'); // AGORA CORRETO: "/finalize-pin" (conforme seu main.py)
@@ -129,7 +180,7 @@ class AuthService {
       }
     } catch (e) {
       developer.log('Erro ao finalizar PIN: $e', name: 'AuthService', error: e);
-      return {'success': false, 'message': 'Não foi possível conectar ao servidor para configurar o PIN. Verifique sua conexão ou tente novamente.'};
+      return {'success': false, 'message': 'Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente.'};
     }
   }
 

@@ -189,7 +189,7 @@ class AppTheme {
             .grey.shade100, // Cor de fundo padrão para os botões numéricos
         foregroundColor: primaryText, // Cor do texto/ícone
         textStyle: const TextStyle(
-          fontSize: 32, // Tamanho maior para os dígitos
+          //fontSize: 32, // Tamanho maior para os dígitos
           fontWeight: FontWeight.normal,
         ),
         // Removendo qualquer elevação e sombra para um visual plano
