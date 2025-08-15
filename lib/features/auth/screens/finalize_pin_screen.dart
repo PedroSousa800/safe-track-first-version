@@ -181,7 +181,7 @@ class _FinalizePinScreenState extends State<FinalizePinScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Finalizar Registro'),
+        title: const Text('Definir novo PIN'),
         foregroundColor: colorScheme.onPrimary,
       ),
       body: SafeArea(
@@ -260,7 +260,7 @@ class _FinalizePinScreenState extends State<FinalizePinScreen> {
                             _finalizePin();
                           }
                         },
-                        child: const Text('Finalizar Registro'),
+                        child: const Text('Salvar Novo PIN'),
                       ),
               ],
             ),

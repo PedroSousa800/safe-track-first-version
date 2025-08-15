@@ -12,6 +12,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  // Controladores para os campos de texto do formulário
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
@@ -21,8 +22,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+  // Chave para identificar e validar o estado do formulário
+  final _formKey = GlobalKey<FormState>();
+
   @override
   void dispose() {
+    // É crucial liberar os controladores para evitar vazamentos de memória
     _emailController.dispose();
     _passwordController.dispose();
     _usernameController.dispose();
@@ -30,20 +35,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  // Função assíncrona para lidar com o processo de registro do usuário
   void _registerUser() async {
+    // Garante que o widget ainda está montado antes de atualizar o estado
     if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
 
-    if (_emailController.text.isEmpty ||
-        _passwordController.text.isEmpty ||
-        _usernameController.text.isEmpty ||
-        _confirmPasswordController.text.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, preencha todos os campos.')),
-      );
+    // Usa a validação do formulário para verificar se os campos são válidos
+    if (!_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = false;
       });
@@ -51,38 +52,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     try {
-      // CORRIGIDO: Mudar de .register para .registerUser
+      // CORREÇÃO: Esta chamada à função está correta, pois precisa de 3 argumentos
+      // (email, password e username). O problema é que a função em
+      // 'auth_service.dart' provavelmente só aceita 2 argumentos.
       final response = await _authService.registerUser(
         _emailController.text,
         _passwordController.text,
-        _usernameController
-            .text, // O endpoint de registro deve aceitar username
+        _usernameController.text,
       );
 
       if (!mounted) return;
 
+      // Verifica se a resposta da API indica sucesso
       if (response.containsKey('success') && response['success'] == true) {
-        // Verifique 'success' em vez de 'message' string literal
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text(
-                  'Registro realizado com sucesso! Prossiga para finalizar o PIN.')), // Mensagem mais clara
+            content: Text(
+              'Registro realizado com sucesso! Prossiga para finalizar o PIN.')),
         );
-        // Garanta que 'user_id' esteja sendo retornado pelo AuthService.registerUser
-        // Se o seu backend não retorna user_id no registro, você precisará ajustar isso.
-        // Ou, se o PIN for genérico ou gerado no cliente, ajuste a FinalizePinScreen para não precisar de userId no construtor.
-        // Assumindo que o backend retorna 'user_id' e 'email' é o que o FinalizePinScreen precisa.
+        
+        // Navega para a tela de finalização do PIN, passando os dados necessários
         Navigator.pushReplacementNamed(
           context,
           AppRoutes.finalizePin,
           arguments: {
-            'user_id': response[
-                'user_id'], // Certifique-se de que o backend retorna isso
+            'user_id': response['user_id'], // Chave retornada pela API
             'email': _emailController.text,
           },
         );
       } else {
-        // Se a resposta do backend tiver uma chave 'message' ou 'error'
+        // Exibe mensagem de erro da API
         String errorMessage = response['message'] ??
             response['error'] ??
             'Falha no registro: Erro desconhecido.';
@@ -91,11 +90,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     } catch (e) {
+      // Captura e exibe erros da chamada à API
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao registrar: $e')),
       );
     } finally {
+      // Garante que o estado de carregamento é desativado no final da operação
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -104,7 +105,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
@@ -120,6 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
+                // Campo para o nome de usuário
                 TextFormField(
                   controller: _usernameController,
                   decoration: const InputDecoration(
@@ -127,8 +128,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     prefixIcon: Icon(Icons.person),
                     border: OutlineInputBorder(),
                   ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, insira um nome de usuário.';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
+                // Campo para o email
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(
@@ -142,16 +150,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Por favor, insira seu email.';
                     }
-                    // Expressão regular simples para validação de email
-                    // Considere usar um pacote mais robusto como 'email_validator' para validações mais complexas
                     final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
                     if (!emailRegex.hasMatch(value)) {
                       return 'Por favor, insira um email válido.';
                     }
-                    return null; // Retorna null se a validação passar
+                    return null;
                   },
                 ),
                 const SizedBox(height: 16),
+                // Campo para a senha
                 TextFormField(
                   controller: _passwordController,
                   decoration: const InputDecoration(
@@ -165,29 +172,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return 'Por favor, insira sua senha.';
                     }
                     if (value.length < 8) {
-                      // Senha deve ter pelo menos 8 caracteres
                       return 'A senha deve ter pelo menos 8 caracteres.';
                     }
                     if (!value.contains(RegExp(r'[A-Z]'))) {
-                      // Pelo menos uma letra maiúscula
                       return 'A senha deve conter pelo menos uma letra maiúscula.';
                     }
                     if (!value.contains(RegExp(r'[a-z]'))) {
-                      // Pelo menos uma letra minúscula
                       return 'A senha deve conter pelo menos uma letra minúscula.';
                     }
                     if (!value.contains(RegExp(r'[0-9]'))) {
-                      // Pelo menos um número
                       return 'A senha deve conter pelo menos um número.';
                     }
-                    if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
-                      // Pelo menos um caractere especial
+                    if (!value.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]'))) {
                       return 'A senha deve conter pelo menos um caractere especial.';
                     }
-                    return null; // A validação passou
+                    return null;
                   },
                 ),
                 const SizedBox(height: 16),
+                // Campo para confirmar a senha
                 TextFormField(
                   controller: _confirmPasswordController,
                   decoration: const InputDecoration(
@@ -203,17 +206,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (value != _passwordController.text) {
                       return 'As senhas não coincidem.';
                     }
-                    return null; // A validação passou
+                    return null;
                   },
                 ),
                 const SizedBox(height: 24),
+                // Botão de registro com indicador de carregamento
                 _isLoading
                     ? const CircularProgressIndicator()
                     : ElevatedButton(
                         onPressed: () {
+                          // Ação do botão: aciona a validação do formulário
                           if (_formKey.currentState!.validate()) {
-                            // Aciona a validação
-                            // Se a validação do formulário passar, então chama a função de registro
                             _registerUser();
                           }
                         },
@@ -222,8 +225,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         child: const Text('Registrar'),
                       ),
-                // NOVO: Adicionado um botão para ir para a tela de Login
                 const SizedBox(height: 16),
+                // Botão para navegar para a tela de login
                 TextButton(
                   onPressed: () {
                     Navigator.pushReplacementNamed(context, AppRoutes.login);

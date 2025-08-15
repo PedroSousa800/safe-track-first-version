@@ -17,40 +17,50 @@ class CustomPinPad extends StatelessWidget {
     this.isLoading = false,
   });
 
-  Widget _buildButton(BuildContext context, String text, {IconData? icon, VoidCallback? onPressed, bool isSpecial = false}) {
+  Widget _buildButton(BuildContext context, String text, {IconData? icon, VoidCallback? onPressed}) {
+    // Definir as cores base para os botões numéricos
+    Color buttonBackgroundColor = AppTheme.alternateBrand;
+    Color buttonForegroundColor = AppTheme.primaryBrand.withOpacity(0.8);
+    
+    // Altera as cores para os botões especiais (biometria e backspace)
+    //if (icon == Icons.fingerprint || icon == Icons.backspace_outlined) {
+      // Usar as cores do seu tema para os botões especiais
+    //  buttonBackgroundColor = Theme.of(context).colorScheme.secondary.withOpacity(0.1);
+    //  buttonForegroundColor = Theme.of(context).colorScheme.secondary;
+    //}
+
+    // A lógica para desabilitar o botão. `null` desabilita o botão.
+    final effectiveOnPressed = isLoading ? null : onPressed;
+
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: AspectRatio(
-          aspectRatio: 1, // Torna o botão quadrado, mantendo a proporção
-          child: ElevatedButton(
-            onPressed: isLoading ? null : onPressed,
-            style: ElevatedButton.styleFrom(
-              shape: const CircleBorder(),
-              padding: EdgeInsets.zero,
-              backgroundColor: isSpecial
-                  ? Theme.of(context).colorScheme.secondary.withOpacity(0.1) // Usar Theme.of(context) para cores do tema
-                  : AppTheme.alternateBrand, 
-              foregroundColor: isSpecial
-                  ? Theme.of(context).colorScheme.secondary // Usar Theme.of(context) para cores do tema
-                  : Theme.of(context).colorScheme.onSurface, // Usar Theme.of(context) para cores do tema
-              elevation: 0, // Remove a elevação
-              shadowColor: Colors.transparent, // Remove a sombra
+          aspectRatio: 1, // Torna o botão quadrado
+          child: TextButton(
+            onPressed: effectiveOnPressed,
+            style: ButtonStyle(
+              shape: WidgetStateProperty.all(const CircleBorder()),
+              padding: WidgetStateProperty.all(EdgeInsets.zero),
+              // Use WidgetStateProperty.all para forçar a cor de fundo e de primeiro plano
+              backgroundColor: WidgetStateProperty.all(buttonBackgroundColor),
+              foregroundColor: WidgetStateProperty.all(buttonForegroundColor),
+              overlayColor: WidgetStateProperty.all(buttonForegroundColor.withOpacity(0.1)),
+              elevation: WidgetStateProperty.all(0),
+              shadowColor: WidgetStateProperty.all(Colors.transparent),
             ),
             child: icon != null
                 ? Icon(
                     icon,
                     size: 36, // Tamanho do ícone para melhor visibilidade
-                    color: AppTheme.primaryBrand.withOpacity(0.8), // Usar AppTheme diretamente
+                    color: buttonForegroundColor, // Usar a cor definida
                   )
                 : Text(
                     text,
                     style: TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.w400,
-                      color: isSpecial
-                          ? Theme.of(context).colorScheme.secondary // Usar Theme.of(context) para cores do tema
-                          : AppTheme.primaryBrand.withOpacity(0.8)
+                      color: buttonForegroundColor, // Usar a cor definida
                     ),
                   ),
           ),
@@ -95,9 +105,9 @@ class CustomPinPad extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildButton(context, '', icon: Icons.fingerprint, onPressed: onBiometricsPressed, isSpecial: false),
+                _buildButton(context, '', icon: Icons.fingerprint, onPressed: onBiometricsPressed),
                 _buildButton(context, '0', onPressed: () => onDigitPressed('0')),
-                _buildButton(context, '', icon: Icons.backspace_outlined, onPressed: onBackspacePressed, isSpecial: false),
+                _buildButton(context, '', icon: Icons.backspace_outlined, onPressed: onBackspacePressed),
               ],
             ),
           ],

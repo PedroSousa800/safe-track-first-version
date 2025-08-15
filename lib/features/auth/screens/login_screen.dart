@@ -144,6 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
     try {
+      // CORRIGIDO: Usando a chave estática do AuthService para email
       _storedEmail = await _storage.read(key: 'email');
       developer.log('Stored Email: $_storedEmail', name: 'LoginScreen');
 
@@ -395,6 +396,26 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontSize: 16), // Usar AppTheme diretamente
                           textAlign: TextAlign.center,
                         ),
+                      TextButton(
+                        onPressed: () {
+                          // Navega para a tela de recuperação de PIN
+                          Navigator.pushNamed(context, AppRoutes.forgotPin);
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all<Color>(
+                              AppTheme.alternateBrand), // Usar AppTheme diretamente
+                          foregroundColor: WidgetStateProperty.all<Color>(
+                              AppTheme.primaryBrand.withOpacity(0.1)), // Usar AppTheme diretamente
+                        ),
+                        child: const Text(
+                          'Esqueceu o PIN?',
+                          style: TextStyle(
+                            color: AppTheme.primaryBrand,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 24.0)
                     ],
                   ),

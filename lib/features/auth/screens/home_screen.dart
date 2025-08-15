@@ -17,7 +17,19 @@ class HomeScreen extends StatelessWidget {
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
-          // NOVO: Botão de Logout
+          // Botão TEMPORÁRIO para voltar ao início (tela de login)
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              // Navega para a LoginScreen e remove todas as rotas anteriores da pilha
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                AppRoutes.splash,
+                (Route<dynamic> route) => false,
+              );
+            },
+            tooltip: 'Voltar ao Início (Apenas para testes)',
+          ),
+          // Botão de Logout
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -70,7 +82,7 @@ class HomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              // NOVO: Exibe o tipo de perfil do usuário
+              // Exibe o tipo de perfil do usuário
               FutureBuilder<String?>(
                 future: authService.getProfileType(), // Obtém o tipo de perfil
                 builder: (context, snapshot) {

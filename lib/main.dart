@@ -11,8 +11,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'dart:developer' as developer;
-
 import 'package:first_version/services/auth_service.dart';
+import 'package:first_version/features/auth/screens/forgot_pin_screen.dart';
+import 'package:first_version/features/auth/screens/confirm_token_screen.dart';
+import 'package:flutter/foundation.dart'; 
 
 void main() {
   runApp(const SafeTrackApp());
@@ -36,16 +38,34 @@ class SafeTrackApp extends StatelessWidget {
         AppRoutes.profileSelection: (context) {
           final userId = ModalRoute.of(context)?.settings.arguments as String?;
           return ProfileSelectionScreen(userId: userId ?? '');
-          
         },
         AppRoutes.finalizePin: (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
-          final userId = args['user_id'] as String? ?? '';
-          final email = args['email'] as String? ?? '';
-          return FinalizePinScreen(userId: userId, email: email);
-        }, // <-- Corrigido para passar os argumentos necessários!
+          // A rota final pode receber o userId (do fluxo de recuperação)
+          // ou um mapa com userId e email (do fluxo de registro).
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? userId;
+          String? email;
+
+          if (args is String) {
+            userId = args; // Fluxo de recuperação
+          } else if (args is Map<String, dynamic>) {
+            userId = args['user_id'] as String?;
+            email = args['email'] as String?; // Fluxo de registro
+          }
+
+          if (userId == null) {
+            // Redireciona para o login se o userId for nulo, pois é essencial.
+            return const LoginScreen();
+          }
+
+          return FinalizePinScreen(userId: userId, email: email ?? '');
+        },
         AppRoutes.home: (context) => const HomeScreen(),
-        // Adicione outras rotas conforme necessário
+        AppRoutes.forgotPin: (context) => const ForgotPinScreen(),
+        AppRoutes.confirmToken: (context) {
+          final email = ModalRoute.of(context)?.settings.arguments as String?;
+          return ConfirmTokenScreen(email: email ?? '');
+        },
       },
     );
   }
@@ -60,9 +80,10 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   final _storage = const FlutterSecureStorage();
-  final AuthService _authService = AuthService(); // Instância do AuthService
+  final AuthService _authService = AuthService();
 
-  bool _showClearButton = false;
+  // Removemos a flag _showClearButton e vamos usar kDebugMode
+  // bool _showClearButton = false;
 
   @override
   void initState() {
@@ -74,23 +95,17 @@ class _SplashScreenState extends State<SplashScreen> {
     developer.log('Verificando status de autenticação...',
         name: 'SplashScreen');
 
-    // --- ADICIONE ESTA LINHA TEMPORARIAMENTE PARA TESTES ---
-    await _authService
-        .logout(); // Força o logout a cada inicialização para testes
-    developer.log('Forçando logout para fins de teste.', name: 'SplashScreen');
-    // --------------------------------------------------------
-
     try {
-      // CORRIGIDO: Acessando as chaves estáticas públicas da classe AuthService
       String? token = await _storage.read(key: AuthService.tokenKey);
       String? userId = await _storage.read(key: AuthService.userIdKey);
       String? profileType =
           await _storage.read(key: AuthService.profileTypeKey);
+      String? pin = await _storage.read(key: AuthService.pinKey);
 
       developer.log('Token: $token, UserId: $userId, ProfileType: $profileType',
           name: 'SplashScreen');
 
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 4));
 
       if (!mounted) return;
 
@@ -109,7 +124,6 @@ class _SplashScreenState extends State<SplashScreen> {
           developer.log(
               'Token e userId válidos, mas perfil não definido. Navegando para ProfileSelectionScreen.',
               name: 'SplashScreen');
-          final userId = ModalRoute.of(context)!.settings.arguments as String;
           if (!mounted) return;
           Navigator.pushReplacementNamed(context, AppRoutes.profileSelection,
               arguments: userId);
@@ -121,25 +135,17 @@ class _SplashScreenState extends State<SplashScreen> {
           Navigator.pushReplacementNamed(context, AppRoutes.home);
         }
       } else {
-        // Se o token estiver ausente ou expirado, limpamos o userId e profileType do storage
-        await _storage.delete(key: AuthService.tokenKey); // CORRIGIDO
-        await _storage.delete(key: AuthService.userIdKey); // CORRIGIDO
-        await _storage.delete(key: AuthService.profileTypeKey); // CORRIGIDO
+        await _authService.logout();
+        if (!mounted) return;
 
-        // Verifica se há um PIN para ir para LoginScreen ou RegisterScreen
-        // Se você adicionou 'pinKey' no AuthService, use AuthService.pinKey aqui.
-        String? pin = await _storage.read(
-            key: 'pin'); // Mantenha como 'pin' ou mude para AuthService.pinKey
         if (pin != null && pin.isNotEmpty) {
           developer.log(
               'PIN encontrado (token ausente/expirado), navegando para LoginScreen.',
               name: 'SplashScreen');
-          if (!mounted) return;
           Navigator.pushReplacementNamed(context, AppRoutes.login);
         } else {
           developer.log('Nenhum token nem PIN. Navegando para RegisterScreen.',
               name: 'SplashScreen');
-          if (!mounted) return;
           Navigator.pushReplacementNamed(context, AppRoutes.register);
         }
       }
@@ -150,9 +156,10 @@ class _SplashScreenState extends State<SplashScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao carregar dados de autenticação: $e')),
       );
-      setState(() {
-        _showClearButton = true;
-      });
+      // Removemos a atualização do estado
+      // setState(() {
+      //   _showClearButton = true;
+      // });
     }
   }
 
@@ -176,10 +183,11 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             const CircularProgressIndicator(),
             const SizedBox(height: 20),
-            if (_showClearButton)
+            // Adicionamos um botão de debug que só aparece em modo de depuração
+            if (kDebugMode) // kDebugMode é uma constante booleana do Flutter
               ElevatedButton(
                 onPressed: _clearAuthData,
-                child: const Text('Limpar Dados e Ir para Registro'),
+                child: const Text('Limpar Dados e Ir para Registro'),                
               ),
           ],
         ),

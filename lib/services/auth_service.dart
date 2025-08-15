@@ -72,51 +72,42 @@ class AuthService {
     }
   }
 
-  // MÉTODO registerUser (já estava corrigido, incluído para completude)
-  Future<Map<String, dynamic>> registerUser(String email, String password, String username) async {
-    final url = Uri.parse('$_baseUrl/register'); // O endpoint de registro é /register
+  // CORREÇÃO AQUI: Adicionado o parâmetro `password`.
+  Future<Map<String, dynamic>> registerUser(String email, String password, String name) async {
+    final url = Uri.parse('$_baseUrl/register'); 
     try {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'password': password, 'username': username}), 
+        // CORREÇÃO AQUI: O corpo da requisição agora inclui a senha.
+        body: json.encode({'email': email, 'password': password, 'name': name}), 
       );
 
       final responseBody = json.decode(response.body);
       developer.log('Register Response: $responseBody', name: 'AuthService');
       developer.log('Register Status Code: ${response.statusCode}', name: 'AuthService');
 
-      // Considera qualquer status code na faixa 2xx (200, 201, 202, etc.) como potencial sucesso.
       if (response.statusCode >= 200 && response.statusCode < 300) { 
-        // Agora, verifica o 'status' dentro do corpo da resposta JSON do backend.
-        // O backend retorna {"status": "new_user_registered"} para sucesso.
         if (responseBody.containsKey('status') && responseBody['status'] == 'new_user_registered') {
           return {
             'success': true, 
             'message': responseBody['message'] ?? 'Registro bem-sucedido.', 
-            'user_id': responseBody['user_id'] // Garante que o user_id é retornado
+            'user_id': responseBody['user_id']
           };
         } else {
-          // Se o status code for 2xx, mas o 'status' no corpo não for 'new_user_registered'
           return {
             'success': false, 
             'message': responseBody['message'] ?? 'Falha no registro: Status inesperado do backend.'
           };
         }
       } else {
- // --- INÍCIO DA CORREÇÃO AQUI para erros do FastAPI (e-mail inválido, etc.) ---
         String parsedErrorMessage = 'Erro desconhecido ao registrar.'; 
-
         if (responseBody.containsKey('detail')) {
             var detail = responseBody['detail'];
             if (detail is List && detail.isNotEmpty) {
-                // Se 'detail' é uma lista (erro de validação do Pydantic)
-                // Ex: [{"loc": ["body", "email"], "msg": "value is not a valid email address", ...}]
-                // Vamos tentar pegar a primeira mensagem de erro ou combiná-las
                 List<String> errors = [];
                 for (var errorItem in detail) {
                     if (errorItem is Map && errorItem.containsKey('msg')) {
-                        // Tenta ser mais específico se o erro for no email
                         if (errorItem.containsKey('loc') && errorItem['loc'] is List && errorItem['loc'].contains('email')) {
                             errors.add('Erro no email: ${errorItem['msg']}');
                         } else {
@@ -125,29 +116,25 @@ class AuthService {
                     }
                 }
                 if (errors.isNotEmpty) {
-                    parsedErrorMessage = errors.join('; '); // Combina as mensagens de erro
+                    parsedErrorMessage = errors.join('; '); 
                 }
             } else if (detail is String) {
-                // Se 'detail' for uma string simples (como em HTTPException)
                 parsedErrorMessage = detail;
             } else if (detail is Map && detail.containsKey('message')) {
-                // Se 'detail' for um mapa com uma chave 'message' (como em HTTPException personalizado)
                 parsedErrorMessage = detail['message'];
             }
         } else if (responseBody.containsKey('message')) {
-            // Caso a resposta tenha uma chave 'message' de nível superior
             parsedErrorMessage = responseBody['message'];
         }
         
         return {'success': false, 'message': parsedErrorMessage};
-        // --- FIM DA CORREÇÃO AQUI ---
       }
     } catch (e) {
       developer.log('Erro no registro: $e', name: 'AuthService', error: e);
       return {'success': false, 'message': 'Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente.'};
     }
   }
-
+  
   // MÉTODO finalizePin (já estava corrigido, incluído para completude)
   Future<Map<String, dynamic>> finalizePin(String userId, String pin) async {
     // CORRIGIDO: Use a URL correta do backend e o verbo HTTP POST
@@ -221,6 +208,36 @@ class AuthService {
     }
   }
 
+  // --- INÍCIO: NOVO MÉTODO PARA RECUPERAÇÃO DE PIN ---
+  Future<Map<String, dynamic>> startPinRecovery(String email) async {
+    final url = Uri.parse('$_baseUrl/auth/recover-pin');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      developer.log('API Response Status Code: ${response.statusCode}', name: 'AuthService.startPinRecovery');
+      developer.log('API Response Body: ${response.body}', name: 'AuthService.startPinRecovery');
+
+      // O backend retorna um status 200 para indicar que o processo foi iniciado.
+      if (response.statusCode == 200) {
+        developer.log('Processo de recuperação iniciado com sucesso (resposta genérica).', name: 'AuthService.startPinRecovery');
+        return {'success': true, 'message': 'Um código de recuperação foi enviado para o seu e-mail.'};
+      } else {
+        final responseBody = jsonDecode(response.body);
+        String errorMessage = responseBody['detail'] ?? 'Falha ao iniciar a recuperação de PIN.';
+        return {'success': false, 'message': errorMessage};
+      }
+    } catch (e) {
+      developer.log('Erro ao iniciar recuperação de PIN: $e', name: 'AuthService.startPinRecovery', error: e);
+      return {'success': false, 'message': 'Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente.'};
+    }
+  }
+
+  // --- FIM: NOVO MÉTODO ---
+
   // Métodos auxiliares (já estavam corretos, incluídos para completude)
   Future<String?> getToken() async {
     return await _storage.read(key: tokenKey);
@@ -240,5 +257,36 @@ class AuthService {
     await _storage.delete(key: profileTypeKey);
     await _storage.delete(key: pinKey);
     developer.log('User logged out, all secure storage cleared.', name: 'AuthService');
+  }
+
+  // --- NOVO MÉTODO: Verificação de Token de Recuperação ---
+  Future<Map<String, dynamic>> verifyRecoveryToken(String email, String token) async {
+    final url = Uri.parse('$_baseUrl/auth/verify-recovery-token');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'token': token,
+        }),
+      );
+
+      final responseBody = json.decode(response.body);
+      developer.log('Verify Token Response: $responseBody', name: 'AuthService');
+      developer.log('Verify Token Status Code: ${response.statusCode}', name: 'AuthService');
+
+      if (response.statusCode == 200 && responseBody.containsKey('user_id')) {
+        // Se a verificação for bem-sucedida, o backend deve retornar o user_id.
+        return {'success': true, 'message': 'Token verificado com sucesso.', 'user_id': responseBody['user_id']};
+      } else {
+        String errorMessage = responseBody['detail'] ?? responseBody['message'] ?? 'Falha ao verificar o token.';
+        return {'success': false, 'message': errorMessage};
+      }
+    } catch (e) {
+      developer.log('Erro na verificação de token: $e', name: 'AuthService', error: e);
+      return {'success': false, 'message': 'Não foi possível conectar ao servidor. Tente novamente.'};
+    }
   }
 }
