@@ -91,13 +91,13 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen> {
               _buildProfileOption(
                 'Tutor',
                 'Responsável por monitorar e gerenciar um ou mais indivíduos.',
-                'tutor',
+                'T',
               ),
               const SizedBox(height: 20),
               _buildProfileOption(
                 'Monitorado',
                 'Indivíduo que será monitorado por um Tutor.',
-                'monitorado',
+                'M',
               ),
               const SizedBox(height: 40),
               if (_errorMessage != null)

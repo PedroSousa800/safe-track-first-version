@@ -19,7 +19,7 @@ class AuthService {
   static const String pinKey = 'user_pin'; // Chave para armazenar o PIN
 
   Future<Map<String, dynamic>> loginUser(String email, String pin) async {
-    final url = Uri.parse('$_baseUrl/login'); // O endpoint de login é /login
+    final url = Uri.parse('$_baseUrl/api/v1/auth/login'); // O endpoint de login é /login
     try {
       final response = await http.post(
         url,
@@ -74,7 +74,7 @@ class AuthService {
 
   // CORREÇÃO AQUI: Adicionado o parâmetro `password`.
   Future<Map<String, dynamic>> registerUser(String email, String password, String name) async {
-    final url = Uri.parse('$_baseUrl/register'); 
+    final url = Uri.parse('$_baseUrl/api/v1/register'); 
     try {
       final response = await http.post(
         url,
@@ -89,6 +89,7 @@ class AuthService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) { 
         if (responseBody.containsKey('status') && responseBody['status'] == 'new_user_registered') {
+          developer.log('Register Status Code: ${response.statusCode}', name: 'AuthService');
           return {
             'success': true, 
             'message': responseBody['message'] ?? 'Registro bem-sucedido.', 
@@ -138,8 +139,8 @@ class AuthService {
   // MÉTODO finalizePin (já estava corrigido, incluído para completude)
   Future<Map<String, dynamic>> finalizePin(String userId, String pin) async {
     // CORRIGIDO: Use a URL correta do backend e o verbo HTTP POST
-    final url = Uri.parse('$_baseUrl/finalize-pin'); // AGORA CORRETO: "/finalize-pin" (conforme seu main.py)
-    
+    final url = Uri.parse('$_baseUrl/api/v1/auth/finalize-pin'); // AGORA CORRETO: "/finalize-pin" (conforme seu main.py)
+
     try {
       final response = await http.post( // CORRIGIDO: Agora é POST, não PATCH (conforme seu main.py)
         url,
@@ -173,7 +174,7 @@ class AuthService {
 
   // MÉTODO setProfileType (já estava correto, incluído para completude)
   Future<Map<String, dynamic>> setProfileType(String userId, String profileType) async {
-    final url = Uri.parse('$_baseUrl/users/$userId/profile_type');
+    final url = Uri.parse('$_baseUrl/api/v1/users/$userId/profile_type');
     String? token = await getToken();
 
     if (token == null) {
@@ -210,7 +211,7 @@ class AuthService {
 
   // --- INÍCIO: NOVO MÉTODO PARA RECUPERAÇÃO DE PIN ---
   Future<Map<String, dynamic>> startPinRecovery(String email) async {
-    final url = Uri.parse('$_baseUrl/auth/recover-pin');
+    final url = Uri.parse('$_baseUrl/api/v1/auth/recover-pin');
     try {
       final response = await http.post(
         url,
@@ -261,7 +262,7 @@ class AuthService {
 
   // --- NOVO MÉTODO: Verificação de Token de Recuperação ---
   Future<Map<String, dynamic>> verifyRecoveryToken(String email, String token) async {
-    final url = Uri.parse('$_baseUrl/auth/verify-recovery-token');
+    final url = Uri.parse('$_baseUrl/api/v1/auth/verify-recovery-token');
 
     try {
       final response = await http.post(
