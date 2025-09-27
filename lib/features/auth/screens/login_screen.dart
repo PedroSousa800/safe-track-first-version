@@ -177,10 +177,10 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null; // Limpa qualquer erro anterior
     });
 
-    String emailToUse =
-        _showEmailField ? _emailController.text : (_storedEmail ?? '');
+    String? emailToUse = await _storage.read(key: 'email');
+        //_showEmailField ? _emailController.text : (_storedEmail ?? '');
 
-    if (emailToUse.isEmpty) {
+    if (emailToUse!.isEmpty) {
       setState(() {
         _error = 'Por favor, insira seu email.';
         _isLoading = false;
@@ -206,9 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Verifica a chave 'success' retornada pelo AuthService
         developer.log('Login successful for user: $emailToUse',
             name: 'LoginScreen');
-        if (_showEmailField) {
-          await _storage.write(key: 'email', value: emailToUse);
-        }
+
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login realizado com sucesso!')),

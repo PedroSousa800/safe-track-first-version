@@ -5,6 +5,7 @@ import 'package:first_version/routes/app_routes.dart';
 import 'package:first_version/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ForgotPinScreen extends StatefulWidget {
   const ForgotPinScreen({super.key});
@@ -12,11 +13,11 @@ class ForgotPinScreen extends StatefulWidget {
   @override
   State<ForgotPinScreen> createState() => _ForgotPinScreenState();
 }
-
 class _ForgotPinScreenState extends State<ForgotPinScreen> {
   final TextEditingController _emailController = TextEditingController();
   final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   bool _isLoading = false;
   String? _error;
@@ -36,6 +37,17 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
       _isLoading = true;
       _error = null;
     });
+
+    // Validação do e-mail salvo localmente
+    final registeredEmail = await _storage.read(key: 'email');
+    if (registeredEmail != null &&
+        _emailController.text.trim() != registeredEmail.trim()) {
+      setState(() {
+        _isLoading = false;
+        _error = 'O e-mail informado não corresponde ao cadastrado.';
+      });
+      return;
+    }
 
     try {
       // >>> ALTERAÇÃO AQUI: Agora esperamos um retorno do método startPinRecovery

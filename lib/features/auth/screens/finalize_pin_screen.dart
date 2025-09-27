@@ -2,14 +2,12 @@ import 'package:first_version/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:first_version/services/auth_service.dart';
 import 'dart:developer' as developer; // ESTA LINHA DEVE ESTAR PRESENTE
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class FinalizePinScreen extends StatefulWidget {
   final String userId;
-  final String email;
 
   const FinalizePinScreen(
-      {super.key, required this.userId, required this.email});
+      {super.key, required this.userId});
 
   @override
   State<FinalizePinScreen> createState() => _FinalizePinScreenState();
@@ -19,7 +17,6 @@ class _FinalizePinScreenState extends State<FinalizePinScreen> {
   final TextEditingController _pinController = TextEditingController();
   final TextEditingController _confirmPinController = TextEditingController();
   bool _isLoading = false;
-  final _storage = const FlutterSecureStorage();
 
   void _finalizePin() async {
     developer.log(
@@ -102,19 +99,6 @@ class _FinalizePinScreenState extends State<FinalizePinScreen> {
         developer.log(
             'FinalizePinScreen: PIN configurado com sucesso (mensagem recebida: ${response['message']}) para o usuário: ${widget.userId}',
             name: 'FinalizePinScreen');
-
-        // Tenta salvar o email localmente
-        await _storage.write(key: 'email', value: widget.email);
-        developer.log(
-            'FinalizePinScreen: Email armazenado localmente com sucesso.',
-            name: 'FinalizePinScreen');
-
-        if (!mounted) {
-          developer.log(
-              'FinalizePinScreen: Widget unmounted before showing SnackBar or navigating.',
-              name: 'FinalizePinScreen');
-          return;
-        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('PIN configurado com sucesso!')),

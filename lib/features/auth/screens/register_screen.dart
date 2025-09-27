@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:first_version/services/auth_service.dart';
 import 'package:first_version/routes/app_routes.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -24,6 +25,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // Chave para identificar e validar o estado do formulário
   final _formKey = GlobalKey<FormState>();
+
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   @override
   void dispose() {
@@ -65,12 +68,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       // Verifica se a resposta da API indica sucesso
       if (response.containsKey('success') && response['success'] == true) {
+
+        await _storage.write(key: 'email', value: _emailController.text.trim());                
+
+        if (!mounted) return; 
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
               'Registro realizado com sucesso! Prossiga para finalizar o PIN.')),
         );
-        
+
         // Navega para a tela de finalização do PIN, passando os dados necessários
         Navigator.pushReplacementNamed(
           context,

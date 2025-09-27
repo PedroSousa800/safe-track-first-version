@@ -40,25 +40,19 @@ class SafeTrackApp extends StatelessWidget {
           return ProfileSelectionScreen(userId: userId ?? '');
         },
         AppRoutes.finalizePin: (context) {
-          // A rota final pode receber o userId (do fluxo de recuperação)
-          // ou um mapa com userId e email (do fluxo de registro).
+
           final args = ModalRoute.of(context)?.settings.arguments;
-          String? userId;
-          String? email;
+
+          String userId = '';
 
           if (args is String) {
-            userId = args; // Fluxo de recuperação
+            userId = args;
           } else if (args is Map<String, dynamic>) {
-            userId = args['user_id'] as String?;
-            email = args['email'] as String?; // Fluxo de registro
+            userId = args['user_id'] ?? '';
           }
 
-          if (userId == null) {
-            // Redireciona para o login se o userId for nulo, pois é essencial.
-            return const LoginScreen();
-          }
-
-          return FinalizePinScreen(userId: userId, email: email ?? '');
+          return FinalizePinScreen(userId: userId);
+          
         },
         AppRoutes.home: (context) => const HomeScreen(),
         AppRoutes.forgotPin: (context) => const ForgotPinScreen(),
